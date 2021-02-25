@@ -4,6 +4,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
@@ -18,11 +19,12 @@ public class FormAuthenticationFailureHandler extends SimpleUrlAuthenticationFai
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
 
         String errorMessage = "Invalid Username or Password";
-
         if (exception instanceof BadCredentialsException) {
             errorMessage = "Invalid Username or Password";
         } else if (exception instanceof InsufficientAuthenticationException) {
             errorMessage = "Invalid Secret Key";
+        } else if (exception instanceof SessionAuthenticationException) {
+            errorMessage = "This account is already online";
         }
 
         setDefaultFailureUrl("/login?error=true&exception=" + errorMessage);

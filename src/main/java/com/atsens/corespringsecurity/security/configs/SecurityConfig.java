@@ -31,6 +31,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.FilterInvocationSecurityMetadataSource;
 import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +53,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private SecurityResourceService securityResourceService;
+
+    @Autowired
+    private LogoutSuccessHandler logoutSuccessHandler;
 
     private String[] permitAllResources = {"/", "/login", "/user/login/**"};
 
@@ -77,10 +83,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/login_proc")
-                .authenticationDetailsSource(formAuthenticationDetailsSource)
-                .successHandler(formAuthenticationSuccessHandler)
-                .failureHandler(formAuthenticationFailureHandler)
-                .permitAll()
+                .authenticationDetailsSource(formAuthenticationDetailsSource) // 이게 무엇인지 알아야 한다.
+                .successHandler(formAuthenticationSuccessHandler) // form 으로 된 로그인이 성공했을 때 어떻게 처리를 할 것인지 (customizing)
+                .failureHandler(formAuthenticationFailureHandler) // form 으로 된 로그인에서 실패했을 때 어떻게 처리를 할 것인지 (왜 로그인에 실패했는지 알려줌)
+//                .permitAll()
+        .and()
+                .logout()
+                .addLogoutHandler(new SecurityContextLogoutHandler()) // 세션 무효화, 쿠키 삭제, SecurityContextHolder.clearContext()
+                .logoutSuccessHandler(logoutSuccessHandler)
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/")
+                .clearAuthentication(true)
+                .invalidateHttpSession(true)
+                .deleteCookies("SESSION", "JSESSIONID", "remember-me")
         .and()
                 .exceptionHandling()
                 .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
@@ -88,6 +102,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .accessDeniedHandler(accessDeniedHandler())
         .and()
                 .addFilterBefore(customFilterSecurityInterceptor(), FilterSecurityInterceptor.class)
+        ;
+        http
+                .sessionManagement()
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
+                .expiredUrl("/login?expired=true")
         ;
     }
 
